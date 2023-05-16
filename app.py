@@ -13,7 +13,7 @@ available_models = [
 
 # inference types
 inference_types = [
-    "Comment2Python"
+    "Comment2Python",
     "Speech2Python",
     "Algo2Python",
 ]
@@ -50,11 +50,11 @@ def process_data():
         query = data['query']
         model_name = data['model']
         inference_type = data['inference_type']
-        # if inference_type not in inference_types:
-        #     msg = {
-        #         "error": "Inference type not available! Available inference types: {}".format(inference_types)
-        #     }
-        #     return jsonify(msg), 400, {'Content-Type': 'application/json; charset=utf-8'}
+        if inference_type not in inference_types:
+            msg = {
+                "error": "Inference type not available! Available inference types: {}".format(inference_types)
+            }
+            return jsonify(msg), 400, {'Content-Type': 'application/json; charset=utf-8'}
         if model_name not in available_models:
             msg = {
                 "error": "Model not available! Available models: {}".format(available_models)
