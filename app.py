@@ -1,33 +1,31 @@
 import torch
 from flask import Flask, request, jsonify
 from flask_cors import cross_origin
-from architecture.Utils import set_env, set_seed, print_time, load_model, create_custom_gpt2_tokenizer, Inference, final_processing
+from transformers import T5ForConditionalGeneration, AutoTokenizer
+from utils import *
 
 app = Flask(__name__)
 
 # available models
 available_models = [
-    "CodeVerbDLM-0.3B"
+    "CodeVerbTLM-0.7B"
 ]
 
 # inference types
 inference_types = [
-    "Comment2Python",
-    # "Algo2Python",
+    "Comment2Python"
+    "Speech2Python",
+    "Algo2Python",
 ]
 
 # Load our model
-set_env()
-set_seed(42, deterministic=True)
+checkpoint = "Salesforce/codet5p-770m-py"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Loading Model on Device: ", device)
-# ckpt = "./model"
 with print_time('Loading Parameters: '):
-    model = load_model(ckpt="./model/", fp16=True).to(device)
+    model = T5ForConditionalGeneration.from_pretrained(checkpoint).to(device)
 with print_time('Fetching Tokenizer: '):
-    tokenizer = create_custom_gpt2_tokenizer()
-    tokenizer.padding_side = 'left'
-    tokenizer.pad_token = 50256
+    tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 
 
 # Define a simple route
@@ -35,7 +33,7 @@ with print_time('Fetching Tokenizer: '):
 @cross_origin()
 def home():
     msg = {
-        "API Name": "CodeVerb DLM API",
+        "API Name": "CodeVerb TLM 0.7M API",
         "API Version": "v1.0",
         "API Status": "Running",
         "Available Models": available_models
@@ -63,9 +61,11 @@ def process_data():
             }
             return jsonify(msg), 400, {'Content-Type': 'application/json; charset=utf-8'}
         
+        # Preprocess input
+        query = preprocess_string(query)
         # Predicted code here
-        completion = Inference(device=device, model=model, tokenizer=tokenizer, context=query, pad_token_id=50256, num_return_sequences=1, temp=0.2, top_p=0.95, max_length_sample=1024)[0]
-        predicted_code = final_processing(completion)
+        input = tokenizer.encode(query, return_tensors="pt").to(device)
+        predicted_code = model.generate(input, max_length=512)
         msg = {
             "query": query,
             "result": predicted_code
@@ -74,4 +74,4 @@ def process_data():
 
 
 if __name__ == '__main__':
-    app.run(port=5025,debug=True)
+    app.run(port=8082, debug=False)
