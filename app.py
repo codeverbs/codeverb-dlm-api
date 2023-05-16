@@ -66,6 +66,7 @@ def process_data():
         # Predicted code here
         input = tokenizer.encode(query, return_tensors="pt").to(device)
         predicted_code = model.generate(input, max_length=512)
+        predicted_code = tokenizer.decode(predicted_code[0], skip_special_tokens=True)
         msg = {
             "query": query,
             "result": predicted_code
