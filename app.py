@@ -28,6 +28,21 @@ with print_time('Fetching Tokenizer: '):
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
 
 
+def preprocess_code(code):
+    # Find the first occurrence of """
+    first_occurrence = code.find('"""')
+    if first_occurrence == -1:
+        # No extra docstring found, return the code as is
+        return code
+    
+    # Find the next occurrence of """
+    second_occurrence = code.find('"""', first_occurrence + 3)
+    if second_occurrence == -1:
+        # No closing docstring found, remove the starting docstring
+        code = code.replace('"""', '', 1)
+    return code
+
+
 # Define a simple route
 @app.route('/', methods=['GET'])
 @cross_origin()
@@ -67,6 +82,7 @@ def process_data():
         input = tokenizer.encode(query, return_tensors="pt").to(device)
         predicted_code = model.generate(input, max_length=512)
         predicted_code = tokenizer.decode(predicted_code[0], skip_special_tokens=True)
+        predicted_code = preprocess_code(predicted_code)
         msg = {
             "query": query,
             "result": predicted_code
